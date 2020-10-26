@@ -19,21 +19,21 @@ The following block of code checks if there's a `rawData` folder in the current 
 Note: At the time of the analysis, the dataset in the [ UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones) was approximately 62.6 MB.
 ```{r, dataDonwload}
 rawDataDownloadUrl <-
-        "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+  "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
 
 # Condition 1: to check if the rawData folder exists
 if (!dir.exists("./rawData")) {
-        dir.create("./rawData")
+  dir.create("./rawData")
 }
 
 # Condition 2: to check if the data has already been downloaded to avoid multiple downloads and also to check for an incomplete download.
 if (!file.exists("./rawData/data.zip")) {
-        download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
-        unzip("./rawData/data.zip", exdir = "./rawData")
+  download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
+  unzip("./rawData/data.zip", exdir = "./rawData")
 } else if (file.size("./rawData/data.zip") < 62556944) {
-        download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
+  download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
 } else {
-        print("Data Already exists in the target folder")
+  print("Data Already exists in the target folder")
 }
 ```
 
@@ -60,7 +60,6 @@ trainDataSubject <- read.table("./rawData/UCI HAR Dataset/train/subject_train.tx
 activityLabel <- read.table("./rawData/UCI HAR Dataset/activity_labels.txt", header = FALSE)
 featureNames <- read.table("./rawData/UCI HAR Dataset/features.txt", header = FALSE)
 featureNames <- as.vector(featureNames[[2]])
-
 ```
 
 #### 3. Clean up Data
@@ -69,7 +68,7 @@ The train and test Data would be merged to their appropriate data labels and sub
 
 The dataframe is cross referenced with `featureNames` to produce a clean testData with column names that are meaningful.
 ```{r testDataCleanup}
-testData <- data.frame(testDataSubject, testDataLabel,testData)
+testData <- data.frame(testDataSubject, testDataLabel, testData)
 trainData <- data.frame(trainDataSubject, trainDataLabel, trainData)
 
 names(testData) <- c("subjectID", "activityID", featureNames)
@@ -79,31 +78,31 @@ names(trainData) <- c("subjectID", "activityID", featureNames)
 #### 4. Merge Train Data and Test Data
 The `trainData` and `testData` would be merged to form one variable called `mergedHARData`.
 ```{r}
-mergedHARData <- trainData %>%  union(testData) 
+mergedHARData <- trainData %>% union(testData)
 ```
 
 #### 5. Using Dplyr to select relevant columns in the Data and aggregating by Activity and Subject.
 The `Select` verb from `dplyr` package to extracts only the measurements on the mean and standard deviation for each measurement.
 ```{r}
-tidyHARData <- mergedHARData %>% 
-        select(subjectID, activityID, contains("mean()") | contains("std()")) %>%
-        group_by(activityID, subjectID) %>% 
-        summarize(across(.fns = mean))
+tidyHARData <- mergedHARData %>%
+  select(subjectID, activityID, contains("mean()") | contains("std()")) %>%
+  group_by(activityID, subjectID) %>%
+  summarize(across(.fns = mean))
 ```
 #### 6. Tidying up the dataset
 The dataset would be tidied by tranforming the variable names to human readable variable names
 ```{r}
 tidyHARDataNames <- names(tidyHARData)
-tidyHARDataNames <-  tidyHARDataNames %>% 
-        str_replace_all( "-", "") %>%           #remove hyphens
-        str_replace_all("mean", "Mean") %>%     
-        str_replace_all("std", "StdDev") %>%           
-        str_replace_all("[(][)]", "") %>%       #remove all parenthesis "()"
-        str_replace_all("X", "Xaxis") %>% 
-        str_replace_all("Y", "Yaxis") %>% 
-        str_replace_all("Z", "Zaxis") %>% 
-        str_replace_all("tbody", "timeBody") %>% 
-        str_replace_all("fBody", "fourierTransformedBody")
+tidyHARDataNames <- tidyHARDataNames %>%
+  str_replace_all("-", "") %>% # remove hyphens
+  str_replace_all("mean", "Mean") %>%
+  str_replace_all("std", "StdDev") %>%
+  str_replace_all("[(][)]", "") %>% # remove all parenthesis "()"
+  str_replace_all("X", "Xaxis") %>%
+  str_replace_all("Y", "Yaxis") %>%
+  str_replace_all("Z", "Zaxis") %>%
+  str_replace_all("tbody", "timeBody") %>%
+  str_replace_all("fBody", "fourierTransformedBody")
 names(tidyHARData) <- tidyHARDataNames
 ```
 
@@ -112,5 +111,3 @@ names(tidyHARData) <- tidyHARDataNames
 ```{r}
 write.table(tidyHARData, "tidyHARData.txt", row.names = FALSE)
 ```
-
-
