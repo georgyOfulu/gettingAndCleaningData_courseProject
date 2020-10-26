@@ -1,0 +1,116 @@
+---
+title: "cookbook.rmd"
+author: "George Ofulu"
+date: "10/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(magrittr)
+library(dplyr)
+library(stringr)
+```
+
+#### 1. Download the files into the rawData folder.
+
+The following block of code checks if there's a `rawData` folder in the current working directory. If there's none, a folder is created and the [HAR data](https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip) from the [ UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones) is downloaded. There are conditional statements to check if the data that's already downloaded is complete; if the data isn't completely downloaded, the file is downloaded and overwrites the previos `data.zip` file.
+
+Note: At the time of the analysis, the dataset in the [ UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones) was approximately 62.6 MB.
+```{r, dataDonwload}
+rawDataDownloadUrl <-
+        "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+
+# Condition 1: to check if the rawData folder exists
+if (!dir.exists("./rawData")) {
+        dir.create("./rawData")
+}
+
+# Condition 2: to check if the data has already been downloaded to avoid multiple downloads and also to check for an incomplete download.
+if (!file.exists("./rawData/data.zip")) {
+        download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
+        unzip("./rawData/data.zip", exdir = "./rawData")
+} else if (file.size("./rawData/data.zip") < 62556944) {
+        download.file(rawDataDownloadUrl, destfile = "./rawData/data.zip")
+} else {
+        print("Data Already exists in the target folder")
+}
+```
+
+
+#### 2. Import useful files for the analysis into R
+
+The R base package's `read.table` would be used to read in the following files:
+
+- **The Test Data**: The file path is `"./rawData/UCI HAR Dataset/test/X_test.txt"`
+- **The Test Data labels**: The file path is `"./rawData/UCI HAR Dataset/test/y_test.txt"`
+- **Test Subject data**: The file path is `"./rawData/UCI HAR Dataset/test/subject_test.txt"`
+- **The Train Data**: The file path is `"./rawData/UCI HAR Dataset/train/X_train.txt"`
+- **The Train Data labels**: The file path is `"./rawData/UCI HAR Dataset/train/y_train.txt"`
+- **Train Subject data**: The file path is `"./rawData/UCI HAR Dataset/train/subject_train.txt"`
+- **Activity labels**: The file path is `"./rawData/UCI HAR Dataset/activity_labels.txt"`
+- **Feature Names**: The file path is `"./rawData/UCI HAR Dataset/features.txt"`
+```{r, dataImport}
+testData <- read.table("./rawData/UCI HAR Dataset/test/X_test.txt", header = FALSE)
+testDataLabel <- read.table("./rawData/UCI HAR Dataset/test/y_test.txt", header = FALSE)
+testDataSubject <- read.table("./rawData/UCI HAR Dataset/test/subject_test.txt", header = FALSE)
+trainData <- read.table("./rawData/UCI HAR Dataset/train/X_train.txt", header = FALSE)
+trainDataLabel <- read.table("./rawData/UCI HAR Dataset/train/y_train.txt", header = FALSE)
+trainDataSubject <- read.table("./rawData/UCI HAR Dataset/train/subject_train.txt", header = FALSE)
+activityLabel <- read.table("./rawData/UCI HAR Dataset/activity_labels.txt", header = FALSE)
+featureNames <- read.table("./rawData/UCI HAR Dataset/features.txt", header = FALSE)
+featureNames <- as.vector(featureNames[[2]])
+
+```
+
+#### 3. Clean up Data
+
+The train and test Data would be merged to their appropriate data labels and subject data to produce a dataframe with a two new columns to denote the activity type and subject. 
+
+The dataframe is cross referenced with `featureNames` to produce a clean testData with column names that are meaningful.
+```{r testDataCleanup}
+testData <- data.frame(testDataSubject, testDataLabel,testData)
+trainData <- data.frame(trainDataSubject, trainDataLabel, trainData)
+
+names(testData) <- c("subjectID", "activityID", featureNames)
+names(trainData) <- c("subjectID", "activityID", featureNames)
+```
+
+#### 4. Merge Train Data and Test Data
+The `trainData` and `testData` would be merged to form one variable called `mergedHARData`.
+```{r}
+mergedHARData <- trainData %>%  union(testData) 
+```
+
+#### 5. Using Dplyr to select relevant columns in the Data and aggregating by Activity and Subject.
+The `Select` verb from `dplyr` package to extracts only the measurements on the mean and standard deviation for each measurement.
+```{r}
+tidyHARData <- mergedHARData %>% 
+        select(subjectID, activityID, contains("mean()") | contains("std()")) %>%
+        group_by(activityID, subjectID) %>% 
+        summarize(across(.fns = mean))
+```
+#### 6. Tidying up the dataset
+The dataset would be tidied by tranforming the variable names to human readable variable names
+```{r}
+tidyHARDataNames <- names(tidyHARData)
+tidyHARDataNames <-  tidyHARDataNames %>% 
+        str_replace_all( "-", "") %>%           #remove hyphens
+        str_replace_all("mean", "Mean") %>%     
+        str_replace_all("std", "StdDev") %>%           
+        str_replace_all("[(][)]", "") %>%       #remove all parenthesis "()"
+        str_replace_all("X", "Xaxis") %>% 
+        str_replace_all("Y", "Yaxis") %>% 
+        str_replace_all("Z", "Zaxis") %>% 
+        str_replace_all("tbody", "timeBody") %>% 
+        str_replace_all("fBody", "fourierTransformedBody")
+names(tidyHARData) <- tidyHARDataNames
+```
+
+#### 7. Write the final data to a csv file
+
+```{r}
+write.table(tidyHARData, "tidyHARData.txt", row.names = FALSE)
+```
+
+
