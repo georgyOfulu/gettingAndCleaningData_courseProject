@@ -13,10 +13,10 @@ The following files are used in the project:
 
 1. **rawData:** Conatins the raw data downloaded from the UCI Machine Learning Repository
 2. **readme.md:** Contains an overview of the entire project.
-3. **cookbook.rmd:** This is an R Markdown notebook that would detail the analysis steps that would transform the rawData to a tidy dataset for downstream analysis.
-4. **analysis.R:** The R script that contains the code used for the data analysis.
-5. **tidyHARData.csv:** The final tidy dataset in csv format.
-
+3. **Codebook.md**: A markdown document that explains the data for ease of use.
+4. **detailedAnalysis.rmd:** This is an R Markdown notebook that explains in detail the analysis steps that would transform the rawData to a tidy dataset for downstream analysis.
+5. **run_analysis.R:** The R script that contains the code used for the data analysis.
+6. **tidyHARData.txt:** The final tidy dataset in txt format.
 
 ####  3. Data Output
 The rawData would be passed through the following highlevel wrangling steps to produce tidyHARData.csv — the tidy dataset. Please refer to the cookbook.rmd file for more details of the processing steps.
